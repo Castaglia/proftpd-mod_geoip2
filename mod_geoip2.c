@@ -569,10 +569,20 @@ static void get_geoip_tables(void) {
     PRIVS_RELINQUISH
 
     if (res == MMDB_SUCCESS) {
+      char build_date[64];
+      time_t build_epoch;
+
       *((MMDB_s **) push_array(geoip2_mmdbs)) = mmdb;
 
-      pr_trace_msg(trace_channel, 15, "loaded GeoIP table '%s': %s", path,
-        mmdb->metadata.database_type);
+      build_epoch = mmdb->metadata.build_epoch;
+      strftime(build_date, sizeof(build_date), "%F %T UTC",
+        gmtime(&build_epoch));
+
+      pr_trace_msg(trace_channel, 15,
+        "loaded GeoIP table '%s': %s (IP version = IPv%d, format version = "
+        "%d.%d, built = %s)", path, mmdb->metadata.database_type,
+        mmdb->metadata.ip_version, mmdb->metadata.binary_format_major_version,
+        mmdb->metadata.binary_format_minor_version, build_date);
 
     } else {
       if (res != MMDB_IO_ERROR) {
