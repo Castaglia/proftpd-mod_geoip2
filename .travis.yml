@@ -6,9 +6,6 @@ compiler:
 
 install:
   - sudo apt-get update -qq
-  # for unit tests
-  - sudo apt-get install -y check
-  - sudo apt-get install -y libsubunit-dev
   # for MaxMinDB support
   - sudo apt-get install -y libmaxminddb-dev
   # for test code coverage
@@ -23,9 +20,9 @@ script:
   - git clone --depth 50 https://github.com/proftpd/proftpd.git
   - cp mod_geoip2.c proftpd/contrib/
   - cd proftpd
-  - ./configure --enable-devel=coverage --enable-dso --enable-tests --with-shared=mod_geoip2
+  - ./configure --enable-dso --with-shared=mod_geoip2
   - make
   - make clean
-  - ./configure --enable-devel=coverage --enable-tests --with-modules=mod_geoip2
+  - ./configure --with-modules=mod_geoip2
   - make
   # Run `tidy -e -q mod_geoip2.html` for doc validation
