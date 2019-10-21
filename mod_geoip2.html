@@ -302,6 +302,16 @@ module:
 <h2><a name="Usage">Usage</a></h2>
 
 <p>
+<b><code>mod_geoip</code> Interactions</b><br>
+The <code>mod_geoip2</code> module is meant to be, roughly, a drop-in
+replacement for the legacy <code>mod_geoip</code> module; it implements the
+same configuration directive, provides the same environment variables,
+<i>etc</i>.  Thus <code>mod_geoip2</code> will <b>fail to start</b> if it
+detects that the <code>mod_geoip</code> module is also being used.  You
+<b>must</b> use only <i>one</i> of either <code>mod_geoip</code> or
+<code>mod_geoip2</code> in ProFTPD, but <b>not both</b>.
+
+<p>
 <b>Access Controls</b><br>
 If any <code>GeoIPAllowFilter</code> or <code>GeoIPDenyFilter</code>
 directives are configured, the <code>mod_geoip2</code> module applies them

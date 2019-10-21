@@ -1219,6 +1219,17 @@ static void geoip2_restart_ev(const void *event_data, void *user_data) {
  */
 
 static int geoip2_init(void) {
+
+  /* Make sure that mod_geoip is NOT loaded.  If it is, error out.  There
+   * can be only one. (Make sure the docs note this, too.)
+   */
+  if (pr_module_exists("mod_geoip.c") == TRUE) {
+    pr_log_pri(PR_LOG_NOTICE, MOD_GEOIP2_VERSION
+      ": mod_geoip and mod_geoip2 cannot be used at the same time");
+    errno = EPERM;
+    return -1;
+  }
+
   geoip2_pool = make_sub_pool(permanent_pool);
   pr_pool_tag(geoip2_pool, MOD_GEOIP2_VERSION);
 
