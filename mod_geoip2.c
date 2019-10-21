@@ -623,16 +623,25 @@ static const char *get_geoip_data_text(pool *p, MMDB_lookup_result_s *lookup,
 
     lookup_name = get_geoip_filter_name(filter_id);
 
-    if (res != MMDB_IO_ERROR) {
-      pr_trace_msg(trace_channel, 3, "error getting data for %s: %s",
-        lookup_name, MMDB_strerror(res));
+    switch (res) {
+      case MMDB_LOOKUP_PATH_DOES_NOT_MATCH_DATA_ERROR:
+        /* Ignored. */
+        errno = ENOENT;
+        break;
 
-    } else {
-      pr_trace_msg(trace_channel, 3, "error getting data for %s: %s (%s)",
-        lookup_name, MMDB_strerror(res), strerror(xerrno));
+      case MMDB_IO_ERROR:
+        pr_trace_msg(trace_channel, 3, "error getting data for %s: %s (%s)",
+          lookup_name, MMDB_strerror(res), strerror(xerrno));
+        errno = EIO;
+        break;
+
+      default:
+        pr_trace_msg(trace_channel, 3, "error getting data for %s: %s",
+          lookup_name, MMDB_strerror(res));
+        errno = xerrno;
+        break;
     }
 
-    errno = EIO;
     return NULL;
   }
 
