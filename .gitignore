@@ -1,0 +1,12 @@
+configure
+Makefile
+config.status
+autom4te.cache
+.libs
+*.sw?
+*.la
+*.lo
+*.log
+*Tests*.log
+*.o
+*~
