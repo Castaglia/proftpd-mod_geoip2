@@ -632,13 +632,13 @@ static const char *get_geoip_data_text(pool *p, MMDB_lookup_result_s *lookup,
       case MMDB_IO_ERROR:
         pr_trace_msg(trace_channel, 3, "error getting data for %s: %s (%s)",
           lookup_name, MMDB_strerror(res), strerror(xerrno));
-        errno = EIO;
+        errno = xerrno;
         break;
 
       default:
         pr_trace_msg(trace_channel, 3, "error getting data for %s: %s",
           lookup_name, MMDB_strerror(res));
-        errno = xerrno;
+        errno = EPERM;
         break;
     }
 
