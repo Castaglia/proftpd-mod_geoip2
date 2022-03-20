@@ -1,6 +1,6 @@
 /*
  * ProFTPD: mod_geoip2 -- a module for looking up country/city/etc for clients
- * Copyright (c) 2019 TJ Saunders
+ * Copyright (c) 2019-2022 TJ Saunders
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
  * module for Apache.
  */
 
-#define MOD_GEOIP2_VERSION		"mod_geoip2/0.1"
+#define MOD_GEOIP2_VERSION		"mod_geoip2/0.1.1"
 
 /* Make sure the version of proftpd is as necessary. */
 #if PROFTPD_VERSION_NUMBER < 0x0001030402
@@ -1189,12 +1189,15 @@ MODRET geoip2_post_pass(cmd_rec *cmd) {
    */
   res = check_geoip_filters(geoip_policy);
   if (res < 0) {
+    const char *user;
+
+    user = pr_table_get(session.notes, "mod_auth.orig-user", NULL);
     (void) pr_log_writefile(geoip2_logfd, MOD_GEOIP2_VERSION,
-      "connection from %s denied due to GeoIP filter/policy",
-      pr_netaddr_get_ipstr(session.c->remote_addr));
+      "connection from IP %s, user '%s' denied due to GeoIP filter/policy",
+      pr_netaddr_get_ipstr(session.c->remote_addr), user);
     pr_log_pri(PR_LOG_NOTICE, MOD_GEOIP2_VERSION
-      ": Connection denied to %s due to GeoIP filter/policy",
-      pr_netaddr_get_ipstr(session.c->remote_addr));
+      ": Connection denied from IP %s, user '%s' due to GeoIP filter/policy",
+      pr_netaddr_get_ipstr(session.c->remote_addr), user);
 
     pr_event_generate("mod_geoip.connection-denied", NULL);
     pr_session_disconnect(&geoip2_module, PR_SESS_DISCONNECT_CONFIG_ACL,
@@ -1353,10 +1356,10 @@ static int geoip2_sess_init(void) {
   res = check_geoip_filters(geoip_policy);
   if (res < 0) {
     (void) pr_log_writefile(geoip2_logfd, MOD_GEOIP2_VERSION,
-      "connection from %s denied due to GeoIP filter/policy",
+      "connection from IP %s denied due to GeoIP filter/policy",
       pr_netaddr_get_ipstr(session.c->remote_addr));
     pr_log_pri(PR_LOG_NOTICE, MOD_GEOIP2_VERSION
-      ": Connection denied to %s due to GeoIP filter/policy",
+      ": Connection denied from IP %s due to GeoIP filter/policy",
       pr_netaddr_get_ipstr(session.c->remote_addr));
 
     pr_event_generate("mod_geoip.connection-denied", NULL);
