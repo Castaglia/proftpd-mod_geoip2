@@ -1,0 +1,76 @@
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**/*.md'
+      - '**/doc/*'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**/*.md'
+      - '**/doc/*'
+  schedule:
+    - cron: "5 5 * * 5"
+
+jobs:
+  analyze:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: true
+      matrix:
+        language:
+          - cpp
+
+    steps:
+      - name: Checkout ProFTPD
+        uses: actions/checkout@v3
+        with:
+          repository: proftpd/proftpd
+
+      - name: Checkout mod_geoip2
+        uses: actions/checkout@v3
+        with:
+          path: proftpd-mod_geoip2
+
+      - name: Install Packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmaxminddb-dev
+
+      - name: Prepare module
+        run: |
+          cp proftpd-mod_geoip2/mod_geoip2.c contrib/mod_geoip2.c
+
+      - name: Configure
+        run: |
+          ./configure --with-modules=mod_geoip2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          config-file: proftpd-mod_geoip2/.codeql.yml
+          queries: +security-and-quality
+          source-root: proftpd-mod_geoip2
+
+      - name: Build
+        run: |
+          make
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{ matrix.language }}"
+          checkout_path: proftpd-mod_geoip2
+          output: sarif-results
+          upload: true
