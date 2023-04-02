@@ -324,7 +324,7 @@ static int check_geoip_filters(geoip_policy_e policy) {
       pr_regex_t *filter_re;
       const char *filter_name, *filter_pattern, *filter_value;
 
-      filter = ((struct geoip_filter **) filters->elts)[i]; 
+      filter = ((struct geoip_filter **) filters->elts)[i];
       filter_id = filter->filter_id;
       filter_pattern = filter->filter_pattern;
       filter_re = filter->filter_re;
@@ -754,7 +754,7 @@ static void get_geoip_data(void) {
 
     lookup_path[0] = "continent";
     lookup_path[1] = "code";
-    lookup_path[2] = NULL; 
+    lookup_path[2] = NULL;
     text = get_geoip_data_text(geoip2_pool, &lookup, lookup_path,
       GEOIP_FILTER_KEY_CONTINENT);
     if (text != NULL) {
