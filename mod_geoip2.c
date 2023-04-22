@@ -1,6 +1,6 @@
 /*
  * ProFTPD: mod_geoip2 -- a module for looking up country/city/etc for clients
- * Copyright (c) 2019-2022 TJ Saunders
+ * Copyright (c) 2019-2023 TJ Saunders
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -669,7 +669,11 @@ static const char *get_geoip_data_text(pool *p, MMDB_lookup_result_s *lookup,
       char buf[64];
 
       memset(buf, '\0', sizeof(buf));
+#if PROFTPD_VERSION_NUMBER >= 0x0001030705
       pr_snprintf(buf, sizeof(buf)-1, "%lu", (unsigned long) entry_data.uint32);
+#else
+      snprintf(buf, sizeof(buf)-1, "%lu", (unsigned long) entry_data.uint32);
+#endif /* ProFTPD 1.3.7 */
       text = pstrdup(p, buf);
       break;
     }
@@ -678,7 +682,11 @@ static const char *get_geoip_data_text(pool *p, MMDB_lookup_result_s *lookup,
       char buf[64];
 
       memset(buf, '\0', sizeof(buf));
+#if PROFTPD_VERSION_NUMBER >= 0x0001030705
       pr_snprintf(buf, sizeof(buf)-1, "%f", entry_data.double_value);
+#else
+      snprintf(buf, sizeof(buf)-1, "%f", entry_data.double_value);
+#endif /* ProFTPD 1.3.7 */
       text = pstrdup(p, buf);
       break;
     }
