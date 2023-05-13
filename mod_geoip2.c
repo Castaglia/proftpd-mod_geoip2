@@ -488,6 +488,12 @@ static const char *get_geoip_filter_value(int filter_id) {
       }
       break;
 
+    case GEOIP_FILTER_KEY_REGION_CODE:
+      if (geoip_region_code != NULL) {
+        return geoip_region_code;
+      }
+      break;
+
     case GEOIP_FILTER_KEY_REGION_NAME:
       if (geoip_region_name != NULL) {
         return geoip_region_name;
