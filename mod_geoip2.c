@@ -102,7 +102,7 @@ static struct geoip_filter_key geoip_filter_keys[] = {
   { NULL, -1 }
 };
 
-#if PR_USE_REGEX
+#if defined(PR_USE_REGEX)
 /* GeoIP filter */
 struct geoip_filter {
   int filter_id;
@@ -139,7 +139,7 @@ static int get_filter_id(const char *filter_name) {
   return filter_id;
 }
 
-#if PR_USE_REGEX
+#if defined(PR_USE_REGEX)
 static int get_filter(pool *p, const char *pattern, pr_regex_t **pre) {
   int res;
 
@@ -262,7 +262,7 @@ static array_header *get_sql_filters(pool *p, const char *query_name) {
 #endif /* PR_USE_REGEX */
 
 static void resolve_deferred_patterns(pool *p, const char *directive) {
-#if PR_USE_REGEX
+#if defined(PR_USE_REGEX)
   config_rec *c;
 
   c = find_config(main_server->conf, CONF_PARAM, directive, FALSE);
@@ -301,7 +301,7 @@ static void resolve_deferred_filters(pool *p) {
 
 static int check_geoip_filters(geoip_policy_e policy) {
   int allow_conn = 0, matched_allow_filter = -1, matched_deny_filter = -1;
-#if PR_USE_REGEX
+#if defined(PR_USE_REGEX)
   config_rec *c;
 
   c = find_config(main_server->conf, CONF_PARAM, "GeoIPAllowFilter", FALSE);
@@ -1008,7 +1008,7 @@ static void set_geoip_values(void) {
  *                  sql:/...
  */
 MODRET set_geoipfilter(cmd_rec *cmd) {
-#if PR_USE_REGEX
+#if defined(PR_USE_REGEX)
   config_rec *c;
   array_header *deferred_patterns, *filters;
 
@@ -1069,11 +1069,11 @@ MODRET set_geoipfilter(cmd_rec *cmd) {
   c->argv[1] = deferred_patterns;
   return PR_HANDLED(cmd);
 
-#else /* no regular expression support at the moment */
+#else
   CONF_ERROR(cmd, pstrcat(cmd->tmp_pool, "The ", cmd->argv[0],
     " directive cannot be used on this system, as you do not have POSIX "
     "compliant regex support", NULL));
-#endif
+#endif /* PR_USE_REGEX */
 }
 
 /* usage: GeoIPEngine on|off */
@@ -1279,7 +1279,7 @@ static int geoip2_init(void) {
     NULL);
   pr_event_register(&geoip2_module, "core.restart", geoip2_restart_ev, NULL);
 
-  pr_log_debug(DEBUG2, MOD_GEOIP2_VERSION ": using libmaxmindb-%s",
+  pr_log_debug(DEBUG2, MOD_GEOIP2_VERSION ": using libmaxminddb-%s",
     MMDB_lib_version());
 
   return 0;
@@ -1379,6 +1379,8 @@ static int geoip2_sess_init(void) {
     pr_event_generate("mod_geoip.connection-denied", NULL);
 
     /* XXX send_geoip_mesg(tmp_pool, mesg) */
+
+    (void) close(geoip2_logfd);
     destroy_pool(tmp_pool);
 
     errno = EACCES;
@@ -1387,6 +1389,7 @@ static int geoip2_sess_init(void) {
 
   set_geoip_values();
 
+  (void) close(geoip2_logfd);
   destroy_pool(tmp_pool);
   return 0;
 }
