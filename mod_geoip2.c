@@ -628,20 +628,19 @@ static void remove_geoip_tables(void) {
 static const char *get_geoip_data_text(pool *p, MMDB_lookup_result_s *lookup,
     const char **lookup_path, int filter_id) {
   int res, xerrno = 0;
-  const char *text = NULL;
+  const char *lookup_name = NULL, *text = NULL;
   MMDB_entry_data_s entry_data;
 
+  lookup_name = get_geoip_filter_name(filter_id);
   res = MMDB_aget_value(&(lookup->entry), &entry_data, lookup_path);
   xerrno = errno;
 
   if (res != MMDB_SUCCESS) {
-    const char *lookup_name;
-
-    lookup_name = get_geoip_filter_name(filter_id);
-
     switch (res) {
       case MMDB_LOOKUP_PATH_DOES_NOT_MATCH_DATA_ERROR:
         /* Ignored. */
+        pr_trace_msg(trace_channel, 19, "error getting data for %s: %s",
+          lookup_name, MMDB_strerror(res));
         errno = ENOENT;
         break;
 
@@ -705,16 +704,17 @@ static const char *get_geoip_data_text(pool *p, MMDB_lookup_result_s *lookup,
       return NULL;
   }
 
+  pr_trace_msg(trace_channel, 19, "found %s: '%s'", lookup_name, text);
   return text;
 }
 
-static void get_geoip_data(void) {
+static void get_geoip_data(const pr_netaddr_t *remote_addr) {
   register unsigned int i;
   const char *ip_addr, *text;
   const char *lookup_path[5] = { NULL, NULL, NULL, NULL, NULL };
   MMDB_s **mmdbs;
 
-  ip_addr = pr_netaddr_get_ipstr(session.c->remote_addr);
+  ip_addr = pr_netaddr_get_ipstr(remote_addr);
 
   mmdbs = geoip2_mmdbs->elts;
   for (i = 0; i < geoip2_mmdbs->nelts; i++) {
@@ -866,12 +866,12 @@ static void get_geoip_data(void) {
   }
 }
 
-static void get_geoip_info(void) {
+static void get_geoip_info(const pr_netaddr_t *remote_addr) {
   const char *ip_addr;
 
-  get_geoip_data();
+  get_geoip_data(remote_addr);
 
-  ip_addr = pr_netaddr_get_ipstr(session.c->remote_addr);
+  ip_addr = pr_netaddr_get_ipstr(remote_addr);
 
   if (geoip_country_code2 != NULL) {
     pr_trace_msg(trace_channel, 8, "%s: 2-Letter country code: %s", ip_addr,
@@ -1341,12 +1341,13 @@ static int geoip2_sess_init(void) {
     (void) pr_log_writefile(geoip2_logfd, MOD_GEOIP2_VERSION,
       "no usable GeoIPTable files found, skipping GeoIP lookups");
 
+    remove_geoip_tables();
     (void) close(geoip2_logfd);
     destroy_pool(tmp_pool);
     return 0;
   }
 
-  get_geoip_info();
+  get_geoip_info(session.c->remote_addr);
 
   c = find_config(main_server->conf, CONF_PARAM, "GeoIPPolicy", FALSE);
   if (c != NULL) {
@@ -1389,6 +1390,7 @@ static int geoip2_sess_init(void) {
 
   set_geoip_values();
 
+  remove_geoip_tables();
   (void) close(geoip2_logfd);
   destroy_pool(tmp_pool);
   return 0;
