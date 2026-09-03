@@ -51,7 +51,7 @@ jobs:
       - name: Install Packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y libmaxminddb-dev
+          sudo apt-get install -y --no-install-recommends libmaxminddb-dev
 
       - name: Prepare module
         run: |

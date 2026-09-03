@@ -1,0 +1,112 @@
+name: Regression Tests
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.html'
+      - '*.md'
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      # Let's try opting into use of Nodejs v24; see:
+      #  https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+      # GitHub runners still causing problems with NodeJS v20; see:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+      DEBIAN_FRONTEND: noninteractive
+      TZ: America/Los_Angeles
+
+    strategy:
+      matrix:
+        compiler:
+          - gcc
+        container:
+          - ubuntu:22.04
+
+    container: ${{ matrix.container }}
+
+    steps:
+      - name: Checkout ProFTPD
+        uses: actions/checkout@v7
+        with:
+          repository: proftpd/proftpd
+          path: proftpd
+
+      - name: Checkout module source code
+        uses: actions/checkout@v7
+        with:
+          path: proftpd-mod_geoip2
+
+      - name: Checkout MMDB source
+        uses: actions/checkout@v7
+        with:
+          repository: adulau/mmdb-server
+          path: mmdb-server
+
+      - name: Install Ubuntu packages
+        run: |
+          apt-get update -qq
+          # for builds
+          apt-get install -y --no-install-recommends build-essential gcc git make tzdata
+
+          # for MaxMind support
+          apt-get install -y --no-install-recommends libmaxminddb-dev
+          # for SQLite support
+          apt-get install -y --no-install-recommends libsqlite3-dev sqlite3
+
+          # for integration/regression tests
+          apt-get install -y --no-install-recommends \
+            libarchive-zip-perl \
+            libauthen-oath-perl \
+            libcompress-raw-zlib-perl \
+            libdata-dumper-simple-perl \
+            libdatetime-perl \
+            libfile-copy-recursive-perl \
+            libfile-path-tiny-perl \
+            libfile-spec-native-perl \
+            libmime-base32-perl \
+            libnet-address-ip-local-perl \
+            libnet-inet6glue-perl \
+            libnet-ssh2-perl \
+            libnet-ssleay-perl \
+            libnet-telnet-perl \
+            libposix-2008-perl \
+            libtest-unit-perl \
+            libtime-hr-perl \
+            libwww-perl
+          PERL_MM_USE_DEFAULT=1 perl -MCPAN -e 'install Net::FTPSSL'
+
+          # for debugging
+          gcc --version
+
+      - name: Prepare module source code
+        run: |
+          cp proftpd-mod_geoip2/mod_geoip2.c proftpd/contrib/mod_geoip2.c
+
+      - name: Install with static modules
+        # NOTE: Docker does not have good IPv6 support, hence we disable it.
+        run: |
+          cd proftpd
+          ./configure --disable-ipv6 --with-modules=mod_geoip2:mod_sql:mod_sql_sqlite
+          make
+          ./proftpd -V
+          make install
+
+      - name: Run integration tests
+        env:
+          GEOIP2_ASN_MMDB: ${{ github.workspace }}/mmdb-server/db/GeoOpen-Country-ASN.mmdb
+          GEOIP2_COUNTRY_MMDB: ${{ github.workspace }}/mmdb-server/db/GeoOpen-Country.mmdb
+          PROFTPD_TEST_BIN: /usr/local/sbin/proftpd
+          PROFTPD_TEST_DIR: ${{ github.workspace }}/proftpd/tests
+        run: |
+          cd proftpd-mod_geoip2
+          perl tests.pl
